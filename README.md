@@ -8,6 +8,10 @@
 
 ---
 
+> UNDER PROCESS; NOT YET FINISHED
+
+---
+
 # 🌤️ Flexible Weather Card
 
 The **Flexible Weather Card** is a highly customizable Lovelace Card for Home Assistant that displays weather data, entities, embedded iFrames/images, and even other cards – all in a flexible grid layout.
@@ -240,3 +244,4 @@ card_mod:
       box-shadow: none;
     }
 ```
+
