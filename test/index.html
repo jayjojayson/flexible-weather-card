@@ -1,0 +1,209 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>FWC Test</title>
+<style>
+  body { margin:0; padding:20px; font-family: Roboto, 'Segoe UI', sans-serif; }
+  body.dark { --primary-text-color:#e1e1e1; --secondary-text-color:#9b9b9b; --card-background-color:#1c1c1c; --ha-card-background:#1c1c1c; --primary-background-color:#111; --divider-color:rgba(225,225,225,.12); --rgb-primary-text-color:225,225,225; --primary-color:#03a9f4; --rgb-primary-color:3,169,244; --text-primary-color:#fff; background:#111; color:#e1e1e1; }
+  body.light { --primary-text-color:#212121; --secondary-text-color:#727272; --card-background-color:#fff; --ha-card-background:#fff; --primary-background-color:#fafafa; --divider-color:rgba(0,0,0,.12); --rgb-primary-text-color:33,33,33; --primary-color:#03a9f4; --rgb-primary-color:3,169,244; --text-primary-color:#fff; background:#f2f3f5; color:#212121; }
+  .row { display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap; }
+  .row > div { flex: 0 0 auto; }
+  h3 { font-weight:500; margin: 4px 0 8px; font-size: 14px; opacity:.7 }
+</style></head>
+<body class="dark">
+<div id="root" class="row"></div>
+<script>if (new URLSearchParams(location.search).get("s") === "cold") window.FWC_TEMP_OFFSET = -6;</script>
+<script src="./report.js"></script>
+<script type="module" src="./harness.bundle.js"></script>
+<script type="module" src="../dist/flexible-weather-card.js"></script>
+<script type="module">
+  const p = new URLSearchParams(location.search);
+  document.body.className = p.get('theme') || 'dark';
+  if (p.get('fake')) window.fwcFakeFetch();
+  await customElements.whenDefined('flexible-weather-card');
+  const Card = customElements.get('flexible-weather-card');
+  window.cards = [];
+  const add = (title, width, config, hassOpts = {}) => {
+    const wrap = document.createElement('div');
+    wrap.style.width = width + 'px';
+    wrap.innerHTML = `<h3>${title}</h3>`;
+    const c = document.createElement('flexible-weather-card');
+    c.setConfig(config);
+    c.hass = window.fwcMockHass(hassOpts);
+    wrap.appendChild(c);
+    document.getElementById('root').appendChild(wrap);
+    window.cards.push(c);
+    return c;
+  };
+  const scen = p.get('s') || 'templates';
+  window.FWC_SCEN = scen;
+  const tpl = (n) => Card.getStubConfig({ states: {} }) && null;
+  if (scen === 'templates') {
+    const T = window.__fwcTemplates;
+    add('Standard', 460, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', elements: Card.template('standard') });
+    add('Ausführlich', 460, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', elements: Card.template('detailed') });
+    add('Kompakt + schmal', 340, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', elements: Card.template('compact') });
+  } else if (scen === 'online') {
+    add('Ohne Wetter-Entität (Open-Meteo)', 460, { type: 'custom:flexible-weather-card', elements: Card.template('detailed') }, { noWeather: true });
+  } else if (scen === 'misc') {
+    add('Misc', 460, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', elements: [
+      { type: 'value', x: 0, y: 0, w: 2, h: 1, metric: 'humidity' }, { type: 'value', x: 2, y: 0, w: 2, h: 1, metric: 'dew_point', temp_colors: true },
+      { type: 'value', x: 4, y: 0, w: 2, h: 1, metric: 'wind_bearing' },
+      { type: 'sensor', x: 0, y: 1, w: 3, h: 1, entity: 'light.wohnzimmer' }, { type: 'sensor', x: 3, y: 1, w: 3, h: 1, entity: 'sensor.balkon_temperatur' },
+      { type: 'temperature', x: 0, y: 2, w: 3, h: 2, entity: 'sensor.balkon_temperatur' }, { type: 'pressure', x: 3, y: 2, w: 3, h: 2 },
+      { type: 'chart', x: 0, y: 4, w: 6, h: 3, range: 'daily' },
+      { type: 'forecast_daily', x: 0, y: 7, w: 6, h: 2, variant: 'auto' },
+      { type: 'humidity', x: 0, y: 9, w: 3, h: 2 }, { type: 'wind', x: 3, y: 9, w: 3, h: 2 },
+      { type: 'current', x: 0, y: 11, w: 2, h: 3 }, { type: 'current', x: 2, y: 11, w: 4, h: 2, show_details: true },
+      { type: 'image', x: 0, y: 14, w: 6, h: 1 },
+      { type: 'warnings', x: 0, y: 15, w: 6, h: 3, expanded: true },
+    ] });
+    add('Legacy-Config', 400, { type: 'custom:flexible-weather-card', title: 'Wetter Übersicht', weather_source: 'entity', weather_entity: 'weather.home', entity_cols: 3,
+      entities: [{ entity: 'light.wohnzimmer' }, { entity: 'sensor.balkon_temperatur', name: 'Balkon' }], iframes: [{ url: 'https://example.com/radar.gif' }] }, { lang: 'en' });
+  } else if (scen === 'online2') {
+    add('EN, online warnings', 420, { type: 'custom:flexible-weather-card', elements: [
+      { type: 'header', x: 0, y: 0, w: 6, h: 1 }, { type: 'warnings', x: 0, y: 1, w: 6, h: 2 }, { type: 'current', x: 0, y: 3, w: 6, h: 3 },
+      { type: 'visibility', x: 0, y: 6, w: 3, h: 2 }, { type: 'wind', x: 3, y: 6, w: 3, h: 2 }, { type: 'forecast_hourly', x: 0, y: 8, w: 6, h: 2 } ] }, { noWeather: true, noDwd: true, lang: 'en' });
+    add('Schmal 300px', 300, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', elements: Card.template('standard') });
+  } else if (scen === 'v21') {
+    add('v2.1 Neue Elemente', 480, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', font_scale: Number(p.get('fs') || 1), element_radius: p.get('r') ? Number(p.get('r')) : undefined, elements: [
+      { type: 'chart', x: 0, y: 0, w: 6, h: 3, series: 'temperature_humidity' },
+      { type: 'forecast_daily', x: 0, y: 3, w: 6, h: 5, variant: 'columns', days: 7, show_temp_line: true, show_humidity_line: true },
+      { type: 'forecast_daily', x: 0, y: 8, w: 6, h: 3, variant: 'columns', days: 5 },
+      { type: 'solar', x: 0, y: 11, w: 3, h: 3 }, { type: 'pollen', x: 3, y: 11, w: 3, h: 3, radius: 24 },
+      { type: 'report', x: 0, y: 14, w: 6, h: 5, entity: 'sensor.fuerstenwalde_spree_wetterbericht' },
+      { type: 'report', x: 0, y: 19, w: 6, h: 3 },
+      { type: 'radar', x: 0, y: 22, w: 6, h: 5 },
+      { type: 'radar', x: 0, y: 27, w: 3, h: 3, provider: 'rainviewer', zoom: 6 },
+    ] });
+  } else if (scen === 'v21b') {
+    add('v2.1b', 480, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', elements: [
+      { type: 'minmax', x: 0, y: 0, w: 3, h: 1 }, { type: 'minmax', x: 3, y: 0, w: 3, h: 1, show_label: false },
+      { type: 'minmax', x: 0, y: 1, w: 6, h: 2 }, { type: 'minmax', x: 0, y: 3, w: 3, h: 2, min_entity: 'sensor.balkon_temperatur', max_entity: 'sensor.balkon_temperatur' },
+      { type: 'forecast_daily', x: 0, y: 5, w: 6, h: 4, variant: 'columns', days: 7, show_temp_line: true },
+      { type: 'report', x: 0, y: 9, w: 6, h: 4 },
+      { type: 'report', x: 0, y: 13, w: 6, h: 3, entity: 'sensor.fuerstenwalde_spree_wetterbericht', length: 'short', show_headline: false },
+      { type: 'radar', x: 0, y: 16, w: 6, h: 4 },
+    ] });
+    add('EN', 420, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', elements: [ { type: 'report', x: 0, y: 0, w: 6, h: 5, range: 'tomorrow' }, { type: 'minmax', x: 0, y: 5, w: 6, h: 2 } ] }, { lang: 'en', light: true });
+  } else if (scen === 'scenes') {
+    const night = p.get('night') === '1';
+    const conds = ['sunny','partlycloudy','cloudy','fog','rainy','pouring','snowy','snowy-rainy','hail','lightning-rainy','windy','exceptional'];
+    (night ? ['clear-night', ...conds.filter(c => c !== 'sunny')] : conds).forEach(c => add(c, 300, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', elements: [{ type: 'current', x:0, y:0, w:6, h:3, display: 'scene', show_details: true }] }, { condition: c, sunEl: night ? -20 : 35, windSpeed: c.startsWith('windy') ? 55 : 18 }));
+  } else if (scen === 'w3d') {
+    const night = p.get('night') === '1';
+    const conds = (p.get('c') || 'partlycloudy,rainy,snowy,lightning-rainy').split(',');
+    conds.forEach(c => add(c, 440, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', elements: [
+      { type: 'weather3d', x: 0, y: 0, w: 6, h: 5 } ] }, { condition: c, sunEl: night ? -20 : 35, windSpeed: +(p.get('wind') || 14) }));
+  } else if (scen === 'w3dr') {
+    add('realistisch', 440, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', elements: [
+      { type: 'weather3d', x: 0, y: 0, w: 3, h: 3 }, { type: 'weather3d', x: 3, y: 0, w: 3, h: 4, show_visibility: true, show_clouds: true },
+      { type: 'temperature', x: 0, y: 3, w: 3, h: 2, show_scene: true }, { type: 'temperature', x: 3, y: 4, w: 3, h: 2, show_scene: true, show_thermometer: false },
+      { type: 'temperature', x: 0, y: 5, w: 2, h: 2, show_scene: true, entity: 'sensor.balkon_temperatur' },
+      { type: 'weather3d', x: 0, y: 7, w: 6, h: 3, show_landscape: false } ] }, { condition: p.get('c') || 'partlycloudy', sunEl: 35 });
+  } else if (scen === 'w3dx') {
+    const all = { show_visibility: true, show_dew_point: true, show_clouds: true };
+    add('9 Karten', 410, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', elements: [
+      { type: 'weather3d', x: 0, y: 0, w: 6, h: 6, ...all },
+      { type: 'weather3d', x: 0, y: 6, w: 3, h: 3, show_wind: false, show_humidity: false, show_pressure: false, show_precip: false, show_uv: false, show_sun: false },
+      { type: 'weather3d', x: 3, y: 6, w: 3, h: 3, show_wind: false, show_humidity: false, show_pressure: false, show_precip: false, show_uv: false, show_sun: false, show_temp: false },
+      { type: 'weather3d', x: 0, y: 9, w: 6, h: 4, show_wind: false, show_humidity: false, show_pressure: false, show_precip: false, show_uv: false, show_sun: false, show_scene: false },
+      { type: 'weather3d', x: 0, y: 13, w: 6, h: 4, show_scene: false, show_landscape: true } ] }, { condition: p.get('c') || 'partlycloudy', sunEl: 35, light: p.get('theme') === 'light' });
+  } else if (scen === 'w3dv') {
+    const off = { show_wind: false, show_humidity: false, show_pressure: false, show_precip: false, show_uv: false, show_sun: false, show_temp: false, show_values: true };
+    add('6x5', 410, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', elements: [
+      { type: 'weather3d', x: 0, y: 0, w: 6, h: 5, ...off },
+      { type: 'weather3d', x: 0, y: 5, w: 3, h: 3, ...off },
+      { type: 'weather3d', x: 3, y: 5, w: 3, h: 3, ...off, show_scene: false },
+      { type: 'weather3d', x: 0, y: 8, w: 6, h: 3, ...off },
+      { type: 'weather3d', x: 0, y: 11, w: 6, h: 4, ...off, show_landscape: false },
+      { type: 'weather3d', x: 0, y: 15, w: 6, h: 5, show_values: true, show_wind: false, show_pressure: false } ] }, { condition: p.get('c') || 'partlycloudy', sunEl: 35, light: p.get('theme') === 'light' });
+  } else if (scen === 'w3dj') {
+    const off = { show_wind: false, show_humidity: false, show_pressure: false, show_precip: false, show_uv: false, show_sun: false, show_temp: false, show_values: true };
+    add('3x3', 440, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', elements: [
+      { type: 'weather3d', x: 0, y: 0, w: 3, h: 3, ...off }, { type: 'weather3d', x: 3, y: 0, w: 3, h: 3, ...off },
+      { type: 'weather3d', x: 0, y: 3, w: 3, h: 3, ...off, show_landscape: true }, { type: 'weather3d', x: 3, y: 3, w: 3, h: 3, ...off } ] }, { condition: p.get('c') || 'partlycloudy', sunEl: p.get('night') ? -20 : 35 });
+  } else if (scen === 'scale') {
+    // gleiche Card: links wie im Designer (900), rechts auf 1280 px; unten ohne Proportionen (gestreckt)
+    const els = customElements.get('flexible-weather-card').template('dashboard');
+    const base = { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', columns: 12, design_width: 900, elements: els };
+    add('900 (Designer)', 900, base, { condition: 'partlycloudy', sunEl: 35 });
+    add('1280 proportional', 1280, base, { condition: 'partlycloudy', sunEl: 35 });
+    add('1280 gestreckt', 1280, { ...base, keep_proportions: false }, { condition: 'partlycloudy', sunEl: 35 });
+  } else if (scen === 'sens') {
+    add('Sensor im Element', 420, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', elements: [
+      { type: 'humidity', x: 0, y: 0, w: 3, h: 2, entity: 'sensor.balkon_feuchte' },
+      { type: 'weather3d', x: 0, y: 2, w: 6, h: 4, show_values: true, show_temp: false, show_wind: false, show_humidity: false, show_pressure: false, show_precip: false, show_uv: false, show_sun: false } ] }, { condition: 'cloudy', sunEl: 35 });
+  } else if (scen === 'gauges') {
+    const pair = (y, w, h) => [{ type: 'humidity', x: 0, y, w, h }, { type: 'pressure', x: w, y, w, h }];
+    add('12 Spalten: 2x2, 2x3, 3x2', 900, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', columns: 12, elements: [
+      ...pair(0, 2, 2), { type: 'humidity', x: 4, y: 0, w: 2, h: 3 }, { type: 'pressure', x: 6, y: 0, w: 2, h: 3 }, ...pair(3, 3, 2).map(e => ({ ...e, x: e.x + 0 })),
+      { type: 'humidity', x: 6, y: 3, w: 3, h: 1 }, { type: 'pressure', x: 9, y: 3, w: 3, h: 1 } ] }, { condition: 'cloudy', sunEl: -10 });
+    add('6 Spalten', 420, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', elements: [ ...pair(0, 3, 2), ...pair(2, 2, 2), ...pair(4, 3, 3) ] }, { condition: 'cloudy', sunEl: 35, light: p.get('theme') === 'light' });
+  } else if (scen === 'dash') {
+    const els = customElements.get('flexible-weather-card').template('dashboard');
+    const base = { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', columns: 12, row_height: 52, gap: 7, design_width: 1280, elements: els };
+    const w = Number(p.get('w') || 390);
+    add(w + ' px', w, base, { condition: 'partlycloudy', sunEl: -10 });
+  } else if (scen === 'isle') {
+    // Insel-Details: c=Bedingungen (Komma), temp, wind, night, season, clouds, sunel
+    const conds = (p.get('c') || 'sunny,rainy,snowy,fog,lightning-rainy,windy').split(',');
+    conds.forEach(c => add(c, +(p.get('w') || 330), { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', elements: [
+      { type: 'weather3d', x: 0, y: 0, w: 6, h: 5, show_temp: false, show_wind: false, show_humidity: false, show_pressure: false, show_precip: false, show_uv: false, show_sun: false, show_values: true, ...(p.get('season') ? { season: p.get('season') } : {}), ...(p.get('mast') ? { wind_object: p.get('mast') } : {}) } ] },
+      { condition: c, sunEl: p.get('night') ? -20 : +(p.get('sunel') || 30), windSpeed: +(p.get('wind') || 8), bearing: p.get('dir') !== null ? +p.get('dir') : undefined, temp: p.get('temp') !== null ? +p.get('temp') : undefined, clouds: p.get('clouds') !== null ? +p.get('clouds') : undefined }));
+  } else if (scen === 'cols') {
+    const row = (y, w, h, view) => [{ type: 'precipitation', x: 0, y, w, h }, { type: 'wind', x: w, y, w, h }, { type: 'humidity', x: 2 * w, y, w, h, view }, { type: 'pressure', x: 3 * w, y, w, h, view }];
+    add('12 Spalten, 3x3 und 3x2', 900, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', columns: 12, elements: [...row(0, 3, 3, 'column'), ...row(3, 3, 2, 'column')] }, { condition: 'rainy', sunEl: 30, light: p.get('theme') === 'light' });
+    add('6 Spalten, 3x2 untereinander', 420, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', elements: [
+      { type: 'precipitation', x: 0, y: 0, w: 6, h: 2 }, { type: 'humidity', x: 0, y: 2, w: 6, h: 2, view: 'column' }, { type: 'pressure', x: 0, y: 4, w: 6, h: 2, view: 'column' },
+      { type: 'humidity', x: 0, y: 6, w: 3, h: 2, view: 'column' }, { type: 'pressure', x: 3, y: 6, w: 3, h: 2, view: 'column' },
+      { type: 'humidity', x: 0, y: 8, w: 2, h: 2, view: 'column' }, { type: 'pressure', x: 2, y: 8, w: 2, h: 2, view: 'column' } ] }, { condition: 'rainy', sunEl: 30, light: p.get('theme') === 'light' });
+  } else if (scen === 'tab') {
+    const w = +(p.get('w') || 460);
+    add(w + ' px', w, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', font_scale: 1.1, row_height: 52, gap: 7, elements: [
+      { type: 'moon', x: 0, y: 0, w: 3, h: 2, show_title: false, show_times: true, show_next: true }, { type: 'sun_times', x: 3, y: 0, w: 3, h: 2, show_title: false },
+      { type: 'pressure', x: 0, y: 2, w: 6, h: 2, view: 'column', show_title: false }, { type: 'humidity', x: 0, y: 4, w: 2, h: 3, view: 'column', show_title: false },
+      { type: 'pressure', x: 2, y: 4, w: 2, h: 3, view: 'column', show_title: false }, { type: 'humidity', x: 4, y: 4, w: 2, h: 3, view: 'column' } ] }, { condition: 'cloudy', sunEl: 20 });
+  } else if (scen === 'w3dn') {
+    [250, 290, 330].forEach(w => add('breite ' + w, w, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', elements: [
+      { type: 'weather3d', x: 0, y: 0, w: 6, h: 6, show_scene: true, show_visibility: true, show_dew_point: true, show_clouds: true } ] }, { condition: 'partlycloudy', sunEl: -20 }));
+  } else if (scen === 'w3ds') {
+    add('klein', 300, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', columns: 6, elements: [
+      { type: 'weather3d', x: 0, y: 0, w: 3, h: 3, show_visibility: true, show_dew_point: true, show_clouds: true },
+      { type: 'weather3d', x: 3, y: 0, w: 3, h: 4 },
+      { type: 'temperature', x: 0, y: 3, w: 3, h: 2, show_scene: true }, { type: 'temperature', x: 3, y: 4, w: 3, h: 2, show_scene: true, show_thermometer: false },
+      { type: 'weather3d', x: 0, y: 5, w: 6, h: 4, show_visibility: true, show_dew_point: true, show_clouds: true, show_landscape: false } ] }, { condition: 'cloudy', sunEl: 35 });
+  } else if (scen === 'v22') {
+    add('v2.2', 480, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', elements: [
+      { type: 'current', x: 0, y: 0, w: 6, h: 3, display: 'scene', show_details: true },
+      { type: 'temperature', x: 0, y: 3, w: 3, h: 2 }, { type: 'temperature', x: 3, y: 3, w: 3, h: 2, entity: 'sensor.balkon_temperatur' },
+      { type: 'forecast_daily', x: 0, y: 5, w: 6, h: 5, variant: 'columns', days: 7, show_temp_line: true, animate_low: true, show_wind: true },
+      { type: 'forecast_hourly', x: 0, y: 10, w: 6, h: 4, show_chart: true, show_wind: true, show_humidity_line: true },
+      { type: 'chart', x: 0, y: 14, w: 6, h: 3, series: 'temperature_humidity' },
+      { type: 'image', x: 0, y: 17, w: 3, h: 3, preset: 'radarfilm_de', url: 'https://www.wetterdienst.de/maps/radar/Radarfilm_Deutschland.gif', mode: 'image', fit: 'contain', refresh: 300 },
+      { type: 'image', x: 3, y: 17, w: 3, h: 3, preset: 'windy', zoom: 6 },
+    ] }, { light: p.get('theme') === 'light' });
+  } else if (scen === 'v22b') {
+    add('v2.2b', 480, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', elements: [
+      { type: 'current', x: 0, y: 0, w: 4, h: 3, display: 'scene', show_details: false }, { type: 'humidity', x: 4, y: 0, w: 2, h: 3 },
+      { type: 'forecast_daily', x: 0, y: 3, w: 6, h: 4, variant: 'columns', days: 7, show_temp_line: true, animate_low: true, show_wind: true, show_pop: false },
+      { type: 'forecast_daily', x: 0, y: 7, w: 6, h: 5, variant: 'columns', days: 5, show_temp_line: true, show_wind: true },
+      { type: 'forecast_hourly', x: 0, y: 12, w: 6, h: 4, hours: 8, show_chart: true, show_wind: true },
+      { type: 'chart', x: 0, y: 16, w: 6, h: 3, range: '12' },
+      { type: 'forecast_hourly', x: 0, y: 19, w: 6, h: 3, hours: 6 },
+      { type: 'forecast_daily', x: 0, y: 22, w: 6, h: 4, variant: 'auto', days: 5 },
+    ] }, { condition: 'cloudy', light: p.get('theme') === 'light' });
+  } else if (scen === 'cold') {
+    add('cold', 480, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', elements: [
+      { type: 'forecast_hourly', x: 0, y: 0, w: 6, h: 4, hours: 18, step: 2, show_chart: true, show_wind: true },
+      { type: 'sun_times', x: 0, y: 4, w: 3, h: 2 },
+    ] }, { sunEl: -10 });
+  } else if (scen === 'mm') {
+    const els = [{ type: 'current', x: 0, y: 0, w: 4, h: 3 }, { type: 'minmax', x: 4, y: 0, w: 2, h: 3 }];
+    add('Karten-Sensoren', 480, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', sensors: { temperature_min: 'sensor.t_min', temperature_max: 'sensor.t_max' }, elements: els });
+    add('Min/Max-Element-Entitäten', 480, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', elements: [els[0], { ...els[1], min_entity: 'sensor.t_min', max_entity: 'sensor.t_max' }] });
+    add('ohne', 480, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', elements: els });
+  } else if (scen === 'icons') {
+    const conds = ['sunny','clear-night','partlycloudy','cloudy','fog','rainy','pouring','snowy','snowy-rainy','hail','lightning','lightning-rainy','windy','windy-variant','exceptional'];
+    conds.forEach(c => add(c, 220, { type: 'custom:flexible-weather-card', weather_entity: 'weather.home', elements: [{ type: 'current', x:0, y:0, w:6, h:2, show_details:false, animated:false }] }, { condition: c }));
+  }
+</script>
+</body></html>

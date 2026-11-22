@@ -7,7 +7,7 @@ on:
     branches:
       - main
     paths:
-      - 'dist/**'     # Nur wenn sich Quellcode ändert
+      - 'src/**'      # Nur wenn sich Quellcode ändert
       - 'build.js'    # Oder das Build-Skript
 
   # 2. Manuell per Button ausführbar
@@ -42,5 +42,5 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "flexible-weather-card Auto-build"
-          file_pattern: src/flexible-weather-card.js
+          file_pattern: dist/flexible-weather-card.js
     

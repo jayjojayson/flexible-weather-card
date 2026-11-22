@@ -14,13 +14,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Code auschecken (damit die Datei src/flexible-weather-card.js verfügbar ist)
+      # 1. Code auschecken (damit die Datei dist/flexible-weather-card.js verfügbar ist)
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Die existierende Datei aus dem src-Ordner an das Release anhängen
+      # 2. Die existierende Datei aus dem dist-Ordner an das Release anhängen
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v2
         with:
-          files: src/flexible-weather-card.js
+          files: dist/flexible-weather-card.js
     

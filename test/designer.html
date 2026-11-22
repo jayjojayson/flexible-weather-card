@@ -1,0 +1,31 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>FWC Designer</title>
+<style>
+  body { margin:0; padding:20px; font-family: Roboto, 'Segoe UI', sans-serif; }
+  body.dark { --primary-text-color:#e1e1e1; --secondary-text-color:#9b9b9b; --card-background-color:#1c1c1c; --ha-card-background:#1c1c1c; --primary-background-color:#111; --divider-color:rgba(225,225,225,.12); --rgb-primary-text-color:225,225,225; --primary-color:#03a9f4; --rgb-primary-color:3,169,244; --text-primary-color:#fff; background:#111; color:#e1e1e1; }
+  body.light { --primary-text-color:#212121; --secondary-text-color:#727272; --card-background-color:#fff; --ha-card-background:#fff; --primary-background-color:#fafafa; --divider-color:rgba(0,0,0,.12); --rgb-primary-text-color:33,33,33; --primary-color:#03a9f4; --rgb-primary-color:3,169,244; --text-primary-color:#fff; background:#f2f3f5; color:#212121; }
+  #ed { width: 520px; }
+</style></head>
+<body class="dark">
+<div id="ed"></div>
+<script src="./report.js"></script>
+<script type="module" src="./harness.bundle.js"></script>
+<script type="module" src="../dist/flexible-weather-card.js"></script>
+<script type="module">
+  const p = new URLSearchParams(location.search);
+  document.body.className = p.get('theme') || 'dark';
+  await customElements.whenDefined('flexible-weather-card-editor');
+  const Card = customElements.get('flexible-weather-card');
+  const ed = document.createElement('flexible-weather-card-editor');
+  window.lastConfig = null;
+  ed.addEventListener('config-changed', (e) => { window.lastConfig = e.detail.config; ed.setConfig(e.detail.config); });
+  const empty = p.get('empty');
+  const gaps = p.get('gaps');
+  const els = p.get('t3d') ? [{ id: 'w1', type: 'weather3d', x: 0, y: 0, w: 6, h: 5 }, { id: 't1', type: 'temperature', x: 0, y: 5, w: 3, h: 2, show_scene: true }] : p.get('img') ? [{ id: 'i1', type: 'image', x: 0, y: 0, w: 6, h: 4, preset: p.get('img') }] : gaps ? [{ id: 'a', type: 'uv', x: 2, y: 0, w: 3, h: 2 }, { id: 'h', type: 'header', x: 0, y: 2, w: 6, h: 1 }, { id: 'm', type: 'moon', x: 3, y: 5, w: 3, h: 2 }, { id: 'v', type: 'value', x: 0, y: 9, w: 2, h: 1 }] : Card.template('standard');
+  ed.setConfig({ type: 'custom:flexible-weather-card', weather_entity: 'weather.home', moon_entity: 'sensor.moon_phase', sensors: { humidity: 'sensor.balkon_feuchte', temperature: 'sensor.balkon_temperatur' }, columns: 6, elements: empty ? [] : els });
+  ed.hass = window.fwcMockHass({ light: p.get('theme') === 'light' });
+  document.getElementById('ed').appendChild(ed);
+  window.ed = ed;
+  if (p.get('open')) { await ed.updateComplete; ed._designerOpen = true; }
+</script>
+</body></html>
